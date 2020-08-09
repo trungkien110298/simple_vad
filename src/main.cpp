@@ -16,15 +16,15 @@ using namespace std::chrono;
 double calculate_energy(VectorXd &frame)
 {
     int i;
-    int frameLenght = frame.size();
+    int frameLength = frame.size();
     long double sum = 0;
 
-    for (i = 0; i < frameLenght; i++)
+    for (i = 0; i < frameLength; i++)
     {
         sum += powl(frame[i], 2);
     }
 
-    return sqrtl(sum / frameLenght);
+    return sqrtl(sum / frameLength);
 }
 
 float calculate_sfm(VectorXcd &spectrum)
@@ -36,14 +36,14 @@ float calculate_sfm(VectorXcd &spectrum)
 
     sum_ari = 0;
     sum_geo = 0;
-    for (i = 0; i < FFT_POINTS; i++)
+    for (i = 0; i < FRAME_LENGTH; i++)
     {
         sig = abs(spectrum(i));
         sum_ari += sig;
         sum_geo += logf(sig);
     }
-    sum_ari = sum_ari / FFT_POINTS;
-    sum_geo = expf(sum_geo / FFT_POINTS);
+    sum_ari = sum_ari / FRAME_LENGTH;
+    sum_geo = expf(sum_geo / FRAME_LENGTH);
 
     return -10 * log10f(sum_geo / sum_ari);
 }
@@ -55,7 +55,7 @@ float calculate_dominant(VectorXcd &spectrum)
     float real, imag;
     float max_real, max_imag;
 
-    for (i = 0; i < FFT_POINTS / 2; i++)
+    for (i = 0; i < FRAME_LENGTH / 2; i++)
     {
         real = spectrum(i).real();
         imag = spectrum(i).imag();
@@ -99,7 +99,7 @@ int main()
     int counter;
     int silence_count, speech_count;
     int vad_dec;
-    char fileName[] = "../data/sample.wav";
+    char fileName[] = "/mnt/d/VTCC/simple_vad/data/TTS01.wav";
 
     // Read file
     SF_INFO sfinfo;
@@ -119,16 +119,16 @@ int main()
     currThresh.F = F_PRIMTHRESH; // moved from 3-4 for opt
     currThresh.SFM = SF_PRIMTHRESH;
 
-    long long frameLength = sampleRate * 1000 / FRAME_SIZE;
+    long long frameLength = FRAME_LENGTH;
     long long numFrames = round(1.0 * numSamples / frameLength);
 
-    for (long long i = 0; i < numFrames; i++)
+    for (long long i = 0; i < numFrames-1; i++)
     {
         VectorXd frame = audio.block(i * frameLength, 0, frameLength, 1);
         frameFeature.energy = calculate_energy(frame);
 
         VectorXcd audio_frame_fft(frameLength);
-        fft.fwd(audio_frame_fft, frame.col(0), FFT_POINTS);
+        fft.fwd(audio_frame_fft, frame);
 
         frameFeature.F = calculate_dominant(audio_frame_fft);
         frameFeature.SFM = calculate_sfm(audio_frame_fft);
@@ -156,17 +156,17 @@ int main()
         {
             counter++;
         }
-        
+
         if ((frameFeature.F - minFeature.F) >= currThresh.F)
         {
             counter++;
         }
-       
+
         if ((frameFeature.SFM - minFeature.SFM) >= currThresh.SFM)
         {
             counter++;
         }
-        
+
 
         /* 3-6, 3-7, 3-8: VAD */
         if (counter > 1)
@@ -195,6 +195,7 @@ int main()
         {
             vad_dec = 1;
         }
+        cout <<  i*0.01 << "      " << vad_dec << "     " << counter << endl;
     }
     return 0;
 }
