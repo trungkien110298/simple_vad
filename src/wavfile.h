@@ -6,22 +6,22 @@
 using namespace std;
 using namespace Eigen;
 
-MatrixXd readfile(SNDFILE *infile, SF_INFO &sfinfo)
+MatrixXf readfile(SNDFILE *infile, SF_INFO &sfinfo)
 {
 
     int channels = sfinfo.channels;
     int num_samples = sfinfo.frames;
 
-    double buf[BUFFER_LEN];
+    float buf[BUFFER_LEN];
     sf_count_t frames;
     int k, m, readcount;
     frames = BUFFER_LEN / channels;
 
-    MatrixXd samples(num_samples, channels);
-    
+    MatrixXf samples(num_samples, channels);
+
     int count = 0;
-  
-    while ((readcount = sf_readf_double(infile, buf, frames)) > 0)
+
+    while ((readcount = sf_readf_float(infile, buf, frames)) > 0)
     {
         for (k = 0; k < readcount; k++)
         {
@@ -32,20 +32,19 @@ MatrixXd readfile(SNDFILE *infile, SF_INFO &sfinfo)
             count++;
         }
     }
-    
+
     return samples;
 }
 
-void writefile(SNDFILE *outfile, SF_INFO &sfinfo, MatrixXd samples)
+void writefile(SNDFILE *outfile, SF_INFO &sfinfo, MatrixXf samples)
 {
 
     SndfileHandle file;
     int channels = samples.cols();
     int num_samples = samples.rows();
-    double buf[num_samples*channels];
+    float buf[num_samples * channels];
     int frames = num_samples;
 
-	
     for (int k = 0; k < num_samples; k++)
     {
         for (int m = 0; m < channels; m++)
@@ -54,5 +53,5 @@ void writefile(SNDFILE *outfile, SF_INFO &sfinfo, MatrixXd samples)
         }
     }
 
-    sf_writef_double (outfile, buf, frames);
+    sf_writef_float(outfile, buf, frames);
 }
